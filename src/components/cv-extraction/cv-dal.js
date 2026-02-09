@@ -1,12 +1,4 @@
-export type CvMetadata = {
-  originalName: string;
-  filePath: string;
-  extractedTextLength: number;
-  pages: number;
-  extractedAt: string;
-};
-
-export async function saveCvMetadata(metadata: CvMetadata) {
+export async function saveCvMetadata(metadata) {
   const { mkdir, readFile, writeFile } = await import("node:fs/promises");
   const { join } = await import("node:path");
   const dataDir = join(process.cwd(), "data");
@@ -14,12 +6,12 @@ export async function saveCvMetadata(metadata: CvMetadata) {
 
   await mkdir(dataDir, { recursive: true });
 
-  let existing: CvMetadata[] = [];
+  let existing = [];
   try {
     const contents = await readFile(dataFile, "utf-8");
-    existing = JSON.parse(contents) as CvMetadata[];
+    existing = JSON.parse(contents);
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+    if (error.code !== "ENOENT") {
       throw error;
     }
   }
@@ -27,4 +19,3 @@ export async function saveCvMetadata(metadata: CvMetadata) {
   existing.push(metadata);
   await writeFile(dataFile, JSON.stringify(existing, null, 2));
 }
-// CV extraction data access layer

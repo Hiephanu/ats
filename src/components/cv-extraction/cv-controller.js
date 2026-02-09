@@ -1,7 +1,6 @@
-import { Request, Response, NextFunction } from "express";
 import { extractCvText } from "./cv-service.js";
 
-export async function ensureUploadDir(): Promise<string> {
+export async function ensureUploadDir() {
   const { mkdir } = await import("node:fs/promises");
   const { join } = await import("node:path");
   const uploadDir = join(process.cwd(), "uploads");
@@ -9,7 +8,7 @@ export async function ensureUploadDir(): Promise<string> {
   return uploadDir;
 }
 
-export async function uploadCv(req: Request, res: Response, next: NextFunction) {
+export async function uploadCv(req, res, next) {
   try {
     if (!req.file) {
       res.status(400).json({ message: "Missing CV file" });
@@ -29,4 +28,3 @@ export async function uploadCv(req: Request, res: Response, next: NextFunction) 
     next(error);
   }
 }
-// CV extraction controller

@@ -1,10 +1,10 @@
 import express from "express";
-import path from "path";
 import cookieParser from "cookie-parser";
 import logger from "morgan";
 import createError from "http-errors";
 
 import matchingRouter from "./apps/match/api/index.js";
+import cvRouter from "./api/routes/cv.js";
 
 const app = express();
 
@@ -16,6 +16,7 @@ app.use(cookieParser());
 
 // routes
 app.use("/matching", matchingRouter);
+app.use("/cv", cvRouter);
 
 // 404 handler
 app.use((req, res, next) => {
