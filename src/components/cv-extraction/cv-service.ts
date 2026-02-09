@@ -26,3 +26,4 @@ export async function extractCvText({ filePath, originalName }: ExtractCvInput) 
     preview: parsed.text.slice(0, 500),
   };
 }
+// CV extraction service

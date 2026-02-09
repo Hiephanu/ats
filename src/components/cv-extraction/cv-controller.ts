@@ -29,3 +29,4 @@ export async function uploadCv(req: Request, res: Response, next: NextFunction) 
     next(error);
   }
 }
+// CV extraction controller

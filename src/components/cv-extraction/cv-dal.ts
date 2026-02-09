@@ -27,3 +27,4 @@ export async function saveCvMetadata(metadata: CvMetadata) {
   existing.push(metadata);
   await writeFile(dataFile, JSON.stringify(existing, null, 2));
 }
+// CV extraction data access layer
