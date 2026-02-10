@@ -1,7 +1,8 @@
-PDF
- → raw text
- → normalize (rất mạnh)
- → sentence segmentation
- → semantic chunking
- → vector representation
- → search / match
+Upload CV
+→ Validate & Store Raw File
+→ Create Parsing Job
+→ Parse CV Content
+→ Extract Structured Data
+→ Normalize & Enrich Data
+→ Save Candidate Profile
+→ Ready for Search & Matching

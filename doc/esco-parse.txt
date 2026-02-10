@@ -1,0 +1,6 @@
+ESCO Dataset
+ → Extract Skill Concepts -> Done
+ → Normalize Labels -> Doing
+ → Create Canonical Skills
+ → Generate Skill Aliases
+ → Store in Skill Dictionary
