@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+      "target": "ESNext",
+      "module": "ESNext",
+      "moduleResolution": "Bundler", // Cho phép import không cần đuôi file
+      "esModuleInterop": true,
+      "skipLibCheck": true,
+      "baseUrl": ".",
+      "paths": {
+        "@/*": ["src/*"]
+      }
+    }
+  }

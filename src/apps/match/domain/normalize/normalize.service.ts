@@ -1,7 +1,5 @@
-// apps/match/services/cv.service.ts
-import instance from '../';
+import instance from "@/libs/gemini.client.js";
 
-// Định nghĩa Interface để quản lý dữ liệu chặt chẽ (Best Practice)
 export interface ParsedCV {
   fullName: string;
   email: string;
@@ -16,7 +14,6 @@ export interface ParsedCV {
 }
 
 export const processCV = async (rawText: string): Promise<ParsedCV> => {
-    // Chuyển Prompt thành dạng chuyên nghiệp hơn
     const prompt = `
         Role: Senior ATS Architect & Data Engineer.
         Task: Extract and normalize structured data from raw CV text.
@@ -43,7 +40,6 @@ export const processCV = async (rawText: string): Promise<ParsedCV> => {
     `;
 
     try {
-        // Sử dụng phương thức generateJSON của Gemini
         const jsonResult = await instance.generateJSON<ParsedCV>(prompt);
         return jsonResult;
     } catch (error) {

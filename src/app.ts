@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-export const createServer = (): Application => {
+export const createServerExpress = (): Application => {
   const app: Application = express();
 
   app.use(logger("dev"));

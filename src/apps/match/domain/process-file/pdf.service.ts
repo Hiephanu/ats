@@ -17,7 +17,6 @@ export const parseText = async (filePath: string): Promise<PDFParseResult> => {
   const buffer = await fs.readFile(filePath);
   const uint8Array = new Uint8Array(buffer);
 
-  // Giữ nguyên logic khởi tạo bằng 'new' như bản JS bạn đã test thành công
   const parser = new (PDFParse as any)(uint8Array);
   return await parser.getText();
 };

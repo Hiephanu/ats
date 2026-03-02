@@ -13,31 +13,93 @@ datasource db {
   provider = "postgresql"
 }
 
+// ==========================================
+// 1. CANONICAL ENTITIES
+// ==========================================
+
+model Occupation {
+  id                  String   @id @default(uuid())
+  sourceId            String?  @map("source_id")
+  canonicalName       String   @map("canonical_name")
+  normalizedCanonical String   @unique @map("normalized_canonical")
+  description         String?
+  level               Int      @default(1)
+
+  parentId            String?  @map("parent_id")
+  parent              Occupation?  @relation("OccupationHierarchy", fields: [parentId], references: [id])
+  children            Occupation[] @relation("OccupationHierarchy")
+
+  aliases             OccupationAlias[]
+  requiredSkills      OccupationSkill[]
+
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("occupations")
+}
+
 model Skill {
-  id                   String   @id
-  sourceId              String
-  canonical             String
-  normalizedCanonical   String   @unique
+  id                  String   @id @default(uuid())
+  sourceId            String?  @map("source_id")
+  canonicalName       String   @map("canonical_name")
+  normalizedCanonical String   @unique @map("normalized_canonical")
 
-  skillType             String?
-  reuseLevel            String?
-  description           String?
+  skillType           String?  @map("skill_type")
+  reuseLevel          String?  @map("reuse_level")
+  description         String?
 
-  aliases               SkillAlias[]
+  aliases             SkillAlias[]
+  occupations         OccupationSkill[]
 
-  createdAt             DateTime @default(now())
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  @@map("skills")
+}
+
+
+// ==========================================
+// 2. ALIAS TABLES
+// ==========================================
+
+model OccupationAlias {
+  id           Int        @id @default(autoincrement())
+  occupationId String     @map("occupation_id")
+  raw          String
+  normalized   String
+  confidence   Float      @default(1.0)
+
+  occupation   Occupation @relation(fields: [occupationId], references: [id], onDelete: Cascade)
+
+  @@index([normalized])
+  @@map("occupation_aliases")
 }
 
 model SkillAlias {
-  id         Int     @id @default(autoincrement())
-  skillId    String
-
+  id         Int      @id @default(autoincrement())
+  skillId    String   @map("skill_id")
   raw        String
   normalized String
-  type       String
 
-  skill      Skill   @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  skill      Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
   @@index([normalized])
-  @@index([skillId])
+  @@map("skill_aliases")
+}
+
+
+// ==========================================
+// 3. MANY-TO-MANY KNOWLEDGE MAP
+// ==========================================
+
+model OccupationSkill {
+  occupationId String   @map("occupation_id")
+  skillId      String   @map("skill_id")
+  importance   Float    @default(0.5)
+  isEssential  Boolean  @default(false) @map("is_essential")
+
+  occupation   Occupation @relation(fields: [occupationId], references: [id])
+  skill        Skill      @relation(fields: [skillId], references: [id])
+
+  @@id([occupationId, skillId])
+  @@map("occupation_skills")
 }
