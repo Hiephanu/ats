@@ -13,6 +13,23 @@ export interface ParsedCV {
   }[];
 }
 
+export function normalizeSkill(raw: string): string {
+
+  let text = raw.toLowerCase().trim()
+
+  // bỏ mọi ký hiệu trừ chữ, số, +, #
+  text = text.replace(/[^a-z0-9+#]/g, "")
+
+  return text
+}
+
+/**
+ * Deduplicate an array of normalized skill strings, preserving first occurrence order.
+ */
+export function deduplicateSkills(normalized: string[]): string[] {
+  return [...new Set(normalized)];
+}
+
 export const processCV = async (rawText: string): Promise<ParsedCV> => {
     const prompt = `
         Role: Senior ATS Architect & Data Engineer.

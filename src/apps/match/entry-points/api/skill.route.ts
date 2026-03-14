@@ -3,6 +3,6 @@ import * as skillController from "../api/skill.controller";
 
 const router = Router();
 
-router.get("/", skillController.getMatchSkillExactController);
+router.get("/resolve", skillController.resolveSkillController);
 
 export default router;

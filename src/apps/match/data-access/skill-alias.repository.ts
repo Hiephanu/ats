@@ -1,9 +1,21 @@
-import { prisma } from "@/libs/prisma"
+import { prisma } from "@/libs/prisma";
+import { ExactMatchSkillAliasDto } from "../domain/normalize/dto/batch-skill.dto";
 
-export const getSkillByAlias = (key: string) => {
-    return prisma.skillAlias.findMany({
-        where: {
-            normalized: key
-        }
-    })
-}
+export const getListMatchSkillAliasByNormalizedCanonical = async (
+  keys: string[]
+): Promise<ExactMatchSkillAliasDto[]> => {
+  if (!keys.length) return [];
+
+  return prisma.skillAlias.findMany({
+    where: {
+      normalized: {
+        in: keys,
+      },
+    },
+    select: {
+      id: true,
+      normalized: true,
+      skillId: true,
+    },
+  });
+};

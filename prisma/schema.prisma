@@ -13,93 +13,188 @@ datasource db {
   provider = "postgresql"
 }
 
-// ==========================================
-// 1. CANONICAL ENTITIES
-// ==========================================
-
-model Occupation {
-  id                  String   @id @default(uuid())
-  sourceId            String?  @map("source_id")
-  canonicalName       String   @map("canonical_name")
-  normalizedCanonical String   @unique @map("normalized_canonical")
-  description         String?
-  level               Int      @default(1)
-
-  parentId            String?  @map("parent_id")
-  parent              Occupation?  @relation("OccupationHierarchy", fields: [parentId], references: [id])
-  children            Occupation[] @relation("OccupationHierarchy")
-
-  aliases             OccupationAlias[]
-  requiredSkills      OccupationSkill[]
-
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
-
-  @@map("occupations")
-}
-
 model Skill {
-  id                  String   @id @default(uuid())
-  sourceId            String?  @map("source_id")
-  canonicalName       String   @map("canonical_name")
-  normalizedCanonical String   @unique @map("normalized_canonical")
+  id                    String   @id @default(uuid())
 
-  skillType           String?  @map("skill_type")
-  reuseLevel          String?  @map("reuse_level")
-  description         String?
+  canonicalName         String   @map("canonical_name")
+  normalizedCanonical   String   @unique @map("normalized_canonical")
 
-  aliases             SkillAlias[]
-  occupations         OccupationSkill[]
+  description           String?
 
-  createdAt           DateTime @default(now()) @map("created_at")
+  skillType             String?  @map("skill_type")
+  reuseLevel            String?  @map("reuse_level")
 
-  @@map("skills")
-}
+  status                SkillStatus @default(PENDING)
 
+  usageCount            Int @default(0) @map("usage_count")
 
-// ==========================================
-// 2. ALIAS TABLES
-// ==========================================
+  sourceId              String?  @map("source_id")
+  isSystem              Boolean  @default(false) @map("is_system")
 
-model OccupationAlias {
-  id           Int        @id @default(autoincrement())
-  occupationId String     @map("occupation_id")
-  raw          String
-  normalized   String
-  confidence   Float      @default(1.0)
+  mergeIntoId           String?  @map("merge_into_id")
+  mergeInto             Skill?   @relation("SkillMerge", fields: [mergeIntoId], references: [id])
+  mergedFrom            Skill[]  @relation("SkillMerge")
 
-  occupation   Occupation @relation(fields: [occupationId], references: [id], onDelete: Cascade)
+  createdById           String?  @map("created_by_id")
 
-  @@index([normalized])
-  @@map("occupation_aliases")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  aliases               SkillAlias[]
+  occupationSkills      OccupationSkill[]
+  candidateSkills       CandidateSkill[]
+  reviewLogs            SkillReviewLog[]
+  mergedLogsFrom        SkillMergeLog[] @relation("SkillMergeFrom")
+  mergedLogsTo          SkillMergeLog[] @relation("SkillMergeTo")
+
+  @@index([normalizedCanonical])
+  @@index([status])
+  @@index([usageCount])
+  @@map("skill")
 }
 
 model SkillAlias {
-  id         Int      @id @default(autoincrement())
-  skillId    String   @map("skill_id")
-  raw        String
-  normalized String
+  id            String   @id @default(uuid())
 
-  skill      Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  skillId       String   @map("skill_id")
+
+  raw           String
+  normalized    String
+
+  source        String?
+  confidence    Float?
+
+  createdById   String?  @map("created_by_id")
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  skill         Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
   @@index([normalized])
-  @@map("skill_aliases")
+  @@index([skillId])
+  @@unique([skillId, normalized])
+
+  @@map("skill_alias")
 }
 
+model SkillReviewLog {
 
-// ==========================================
-// 3. MANY-TO-MANY KNOWLEDGE MAP
-// ==========================================
+  id           String   @id @default(uuid())
+
+  skillId      String
+  skill        Skill    @relation(fields: [skillId], references: [id])
+
+  action       SkillReviewAction @default(UPDATE)
+
+  comment      String?
+
+  oldValue     Json?
+  newValue     Json?
+
+  reviewedById String?
+
+  createdAt    DateTime @default(now())
+
+  @@index([skillId])
+}
+
+enum SkillStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ACTIVE
+  INACTIVE
+}
+
+enum SkillReviewAction {
+  UPDATE
+  APPROVE
+  REJECT
+  ACTIVATE
+  DEACTIVATE
+}
+
+model Occupation {
+  id          String   @id @default(uuid())
+
+  name        String
+  description String?
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  occupationSkills OccupationSkill[]
+
+  @@map("occupation")
+}
 
 model OccupationSkill {
-  occupationId String   @map("occupation_id")
-  skillId      String   @map("skill_id")
-  importance   Float    @default(0.5)
-  isEssential  Boolean  @default(false) @map("is_essential")
+  occupationId String  @map("occupation_id")
+  skillId      String  @map("skill_id")
 
-  occupation   Occupation @relation(fields: [occupationId], references: [id])
-  skill        Skill      @relation(fields: [skillId], references: [id])
+  weight       Float?
+  isCore       Boolean @default(false) @map("is_core")
+
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  occupation   Occupation @relation(fields: [occupationId], references: [id], onDelete: Cascade)
+  skill        Skill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
   @@id([occupationId, skillId])
-  @@map("occupation_skills")
+  @@index([skillId])
+  @@map("occupation_skill")
 }
+
+model Candidate {
+  id        String   @id @default(uuid())
+
+  fullName  String?  @map("full_name")
+  email     String?  @unique
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  candidateSkills CandidateSkill[]
+
+  @@map("candidate")
+}
+
+model CandidateSkill {
+  candidateId  String  @map("candidate_id")
+  skillId      String  @map("skill_id")
+
+  level        String?
+  years        Float?
+
+  source       String?
+
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  candidate    Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  skill        Skill     @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([candidateId, skillId])
+  @@index([skillId])
+  @@map("candidate_skill")
+}
+
+model SkillMergeLog {
+  id            String   @id @default(uuid())
+
+  fromSkillId   String   @map("from_skill_id")
+  toSkillId     String   @map("to_skill_id")
+
+  mergedById    String?  @map("merged_by_id")
+
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  fromSkill     Skill @relation("SkillMergeFrom", fields: [fromSkillId], references: [id])
+  toSkill       Skill @relation("SkillMergeTo", fields: [toSkillId], references: [id])
+
+  @@index([fromSkillId])
+  @@index([toSkillId])
+
+  @@map("skill_merge_log")
+}
+
