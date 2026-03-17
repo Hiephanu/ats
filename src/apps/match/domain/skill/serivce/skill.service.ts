@@ -1,11 +1,10 @@
-import * as skillRepository from "../../data-access/skill.repository";
-import * as skillAliasRepository from "../../data-access/skill-alias.repository";
-import * as normalizeService from "./normalize.service";
-import { ResolveResult, SaveCandidateSkillsResponse } from "./dto/batch-skill.dto";
+import * as skillRepository from "../../../data-access/skill.repository";
+import * as skillAliasRepository from "../../../data-access/skill-alias.repository";
+import * as normalizeService from "../../normalize/normalize.service";
+import { ResolveResult, SaveCandidateSkillsResponse } from "../dto/batch-skill.dto";
 import { prisma } from "@/libs/prisma";
 import { Prisma } from "@/generated/prisma/client";
-import { SourceSkill } from "./skill.enum";
-import e from "express";
+import { SourceSkill } from "../enums/skill.enum";
 
 export const batchResolveSkill = async (
   skills: string[]
@@ -135,19 +134,7 @@ export const createSkill = async (
       isSystem: false,
       sourceId: sourceId ?? null,
       mergeIntoId: null,
-      createdById: createdById ?? null,
-      reviewedById: null
-    }
-  })
-}
-
-export const approveSkill = async (skillId: string, reviewerId: string) => {
-  return prisma.skill.update({
-    where: { id: skillId },
-    data: {
-      status: "ACTIVE",
-      reviewedById: reviewerId,
-      updatedAt: new Date()
+      createdById: createdById ?? null
     }
   })
 }

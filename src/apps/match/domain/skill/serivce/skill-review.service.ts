@@ -1,8 +1,8 @@
 import { prisma } from "@/libs/prisma"
 import { SkillReviewAction, SkillStatus } from "@/generated/prisma/client"
 
-import * as skillRepository from "../../data-access/skill.repository"
-import * as skillReviewRepository from "../../data-access/skill-review.repository"
+import * as skillRepository from '@/apps/match/data-access/skill.repository'
+import * as skillReviewRepository from '@/apps/match/data-access/skill-review.repository'
 
 export const updateSkill = async (
     skillId: string,
@@ -80,21 +80,16 @@ export const rejectSkill = async (
     reviewerId: string,
     comment?: string
 ) => {
-
     const skill = await skillRepository.getSkillById(skillId)
-
     if (!skill) {
         throw new Error("Skill not found")
     }
-
     return prisma.$transaction(async (tx) => {
-
         const updated = await skillRepository.updateSkillStatus(
             tx,
             skillId,
             SkillStatus.REJECTED
         )
-
         await skillReviewRepository.createReviewLog(tx, {
             skillId,
             action: SkillReviewAction.REJECT,
@@ -103,11 +98,8 @@ export const rejectSkill = async (
             newValue: { status: SkillStatus.REJECTED },
             reviewedById: reviewerId
         })
-
         return updated
-
     })
-
 }
 
 
@@ -116,25 +108,19 @@ export const activateSkill = async (
     reviewerId: string,
     comment?: string
 ) => {
-
     const skill = await skillRepository.getSkillById(skillId)
-
     if (!skill) {
         throw new Error("Skill not found")
     }
-
     if (skill.status !== SkillStatus.APPROVED) {
         throw new Error("Skill must be APPROVED before activation")
     }
-
     return prisma.$transaction(async (tx) => {
-
         const updated = await skillRepository.updateSkillStatus(
             tx,
             skillId,
             SkillStatus.ACTIVE
         )
-
         await skillReviewRepository.createReviewLog(tx, {
             skillId,
             action: SkillReviewAction.ACTIVATE,
@@ -143,9 +129,6 @@ export const activateSkill = async (
             newValue: { status: SkillStatus.ACTIVE },
             reviewedById: reviewerId
         })
-
         return updated
-
     })
-
 }

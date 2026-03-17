@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { createSuccessResponse } from "@/libs/utils/custon-response";
-import * as skillService from "../../domain/normalize/skill.service"
+import * as skillService from "../../domain/skill/serivce/skill.service"
 
 export const resolveSkillController = async (req: Request, res: Response, next: NextFunction) => {
   const skills = ['nodejs'];

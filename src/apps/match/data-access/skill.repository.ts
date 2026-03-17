@@ -1,5 +1,5 @@
 import { prisma } from "../../../libs/prisma";
-import { ExactMatchSkillDto } from "../domain/normalize/dto/batch-skill.dto";
+import { ExactMatchSkillDto } from "../domain/skill/dto/batch-skill.dto";
 import { SkillStatus } from "@/generated/prisma/client"
 
 export const getSkillById = async (skillId: string) => {

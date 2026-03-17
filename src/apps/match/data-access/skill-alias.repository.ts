@@ -1,5 +1,5 @@
 import { prisma } from "@/libs/prisma";
-import { ExactMatchSkillAliasDto } from "../domain/normalize/dto/batch-skill.dto";
+import { ExactMatchSkillAliasDto } from "../domain/skill/dto/batch-skill.dto";
 
 export const getListMatchSkillAliasByNormalizedCanonical = async (
   keys: string[]
