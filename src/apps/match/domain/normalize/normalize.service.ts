@@ -46,7 +46,12 @@ export const processCV = async (rawText: string): Promise<ParsedCV> => {
           fullName: string,
           email: string,
           phone: string,
-          skills: string[],
+          "skills": [
+            {
+              "name": string,
+              "level": "beginner" | "intermediate" | "advanced" | null
+            }
+          ],
           experience: Array<{ company: string, role: string, duration: string, description: string[] }>
         }
 
