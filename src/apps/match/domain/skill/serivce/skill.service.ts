@@ -1,140 +1,43 @@
-import * as skillRepository from "../../../data-access/skill.repository";
-import * as skillAliasRepository from "../../../data-access/skill-alias.repository";
-import * as normalizeService from "../../normalize/normalize.service";
-import { ResolveResult, SaveCandidateSkillsResponse } from "../dto/batch-skill.dto";
 import { prisma } from "@/libs/prisma";
-import { Prisma } from "@/generated/prisma/client";
-import { SourceSkill } from "../enums/skill.enum";
 
-export const batchResolveSkill = async (
-  skills: string[]
-): Promise<ResolveResult[]> => {
+export const expandSkill = async (skillId: string) => {
+  const relations =  await getRelatedSkills(skillId);
 
-  if (!skills.length) return []
-
-  const results: ResolveResult[] = skills.map(input => ({
-    input,
-    normalized: normalizeService.normalizeSkill(input)
-  }))
-
-  const uniqueNormalized = [...new Set(results.map(r => r.normalized))]
-  const exactSkills =
-    await skillRepository.getListMatchSkillByNormalizedCanonical(
-      uniqueNormalized
-    )
-  const skillMap = new Map(
-    exactSkills.map(s => [s.normalizedCanonical, s.id])
-  )
-  for (const r of results) {
-    const skillId = skillMap.get(r.normalized)
-    if (skillId) r.skillId = skillId
-  }
-
-  const remainAfterExact = results.filter(r => !r.skillId)
-  if (remainAfterExact.length) {
-    const aliasList =
-      await skillAliasRepository.getListMatchSkillAliasByNormalizedCanonical(
-        [...new Set(remainAfterExact.map(r => r.normalized))]
-      )
-    const aliasMap = new Map(
-      aliasList.map(a => [a.normalized, a.skillId])
-    )
-    for (const r of remainAfterExact) {
-      const skillId = aliasMap.get(r.normalized)
-      if (skillId) r.skillId = skillId
-    }
-  }
-
-  return results
+  return relations.map(r => r.toSkill);
 }
 
-export const saveCandidateSkills = async (
-  candidateId: string,
-  skills: string[]
-): Promise<SaveCandidateSkillsResponse> => {
-
-  const resolved = await batchResolveSkill(skills)
-
-  const responseSkills: SaveCandidateSkillsResponse["skills"] = []
-
-  await prisma.$transaction(async (tx) => {
-
-    const skillIds: string[] = []
-
-    for (const r of resolved) {
-      let skillId = r.skillId
-      let created = false
-      if (!skillId) {
-        const skill = await createSkill(tx, r.input, r.normalized, candidateId, SourceSkill.RESUME)
-        skillId = skill.id
-        created = true
-      }
-      skillIds.push(skillId)
-      responseSkills.push({
-        input: r.input,
-        normalized: r.normalized,
-        skillId,
-        created
-      })
-    }
-
-    const uniqueSkillIds = [...new Set(skillIds)]
-    await tx.candidateSkill.createMany({
-      data: uniqueSkillIds.map(skillId => ({
-        candidateId,
-        skillId
-      })),
-      skipDuplicates: true
-    })
-
-    const countMap = new Map<string, number>()
-
-    for (const id of skillIds) {
-      countMap.set(id, (countMap.get(id) || 0) + 1)
-    }
-    for (const [skillId, count] of countMap) {
-      await tx.skill.update({
-        where: { id: skillId },
-        data: {
-          usageCount: {
-            increment: count
-          }
-        }
-      })
-    }
-  })
-
-  return {
-    candidateId,
-    skills: responseSkills
-  }
-
-}
-
-export const createSkill = async (
-  tx: Prisma.TransactionClient,
-  rawSkill: string,
-  normalized: string,
-  createdById?: string,
-  sourceId?: string
-) => {
-  return tx.skill.upsert({
+export const getRelatedSkills = (skillId: string) => {
+  return prisma.skillRelation.findMany({
     where: {
-      normalizedCanonical: normalized
+      fromSkillId: skillId,
+      type: {
+        in: ["RELATED", "ESSENTIAL"]
+      }
     },
-    update: {},
-    create: {
-      canonicalName: rawSkill,
-      normalizedCanonical: normalized,
-      description: null,
-      skillType: null,
-      reuseLevel: null,
-      status: "PENDING",
-      usageCount: 0,
-      isSystem: false,
-      sourceId: sourceId ?? null,
-      mergeIntoId: null,
-      createdById: createdById ?? null
+    include: {
+      toSkill: true
     }
   })
+}
+
+export async function getFullSkillPath(skillId: string) {
+  const results = await prisma.$queryRaw`
+    WITH RECURSIVE SkillPath AS (
+        -- Gốc: Kỹ năng bắt đầu
+        SELECT id, canonical_name, 1 as level
+        FROM skill
+        WHERE id = ${skillId}
+
+        UNION ALL
+
+        -- Đệ quy: Tìm các to_skill_id có quan hệ 'PARENT'
+        SELECT s.id, s.canonical_name, sp.level + 1
+        FROM skill s
+        INNER JOIN skill_relation sr ON s.id = sr.to_skill_id
+        INNER JOIN SkillPath sp ON sr.from_skill_id = sp.id
+        WHERE sr.type = 'PARENT' AND sp.level < 10 -- Giới hạn 10 cấp để tránh vòng lặp vô tận
+    )
+    SELECT DISTINCT * FROM SkillPath ORDER BY level ASC;
+  `;
+  return results;
 }

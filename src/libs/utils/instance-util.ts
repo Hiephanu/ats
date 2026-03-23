@@ -1,0 +1,1 @@
+export const BATCH_SIZE_IMPORT_SKILL = 500;

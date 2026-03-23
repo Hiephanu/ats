@@ -40,6 +40,8 @@ model Skill {
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
 
+  outgoingRelations     SkillRelation[] @relation("FromSkill")
+  incomingRelations     SkillRelation[] @relation("ToSkill")
   aliases               SkillAlias[]
   occupationSkills      OccupationSkill[]
   candidateSkills       CandidateSkill[]
@@ -76,6 +78,35 @@ model SkillAlias {
   @@unique([skillId, normalized])
 
   @@map("skill_alias")
+}
+
+model SkillRelation {
+  id            String   @id @default(uuid())
+
+  fromSkillId   String   @map("from_skill_id")
+  toSkillId     String   @map("to_skill_id")
+
+  type          RelationType
+  source        String?  // ESCO, CV, JOB...
+
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  fromSkill     Skill @relation("FromSkill", fields: [fromSkillId], references: [id], onDelete: Cascade)
+  toSkill       Skill @relation("ToSkill", fields: [toSkillId], references: [id], onDelete: Cascade)
+
+  @@index([fromSkillId])
+  @@index([toSkillId])
+
+  @@unique([fromSkillId, toSkillId, type])
+
+  @@map("skill_relation")
+}
+
+enum RelationType {
+  PARENT        // broader
+  CHILD         // narrower
+  RELATED       // optional
+  ESSENTIAL     // essential
 }
 
 model SkillReviewLog {
