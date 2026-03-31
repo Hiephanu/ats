@@ -9,7 +9,8 @@ export const streamCsv = async (
     const parser = parse({
       columns: true,
       skip_empty_lines: true,
-      trim: true
+      trim: true,
+      relax_column_count: true,
     })
 
     const stream = fs.createReadStream(filePath)

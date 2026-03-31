@@ -1,6 +1,31 @@
+import { SkillLevel } from "@/generated/prisma/enums";
+import instance from "@/libs/gemini.client";
 import { prisma } from "@/libs/prisma";
 import { streamCsv } from "@/libs/utils/csv-util";
 import { BATCH_SIZE_IMPORT_SKILL } from "@/libs/utils/instance-util";
+import * as processFileUtil from "@/libs/utils/procress-file";
+import { structuredSkillPrompt } from "@/libs/utils/prompt";
+import * as skillService from "@/apps/match/domain/skill/serivce/skill.service";
+
+export type LlmSkill = {
+    name: string; 
+    confidence: number;
+    year: number | null;             
+    level: SkillLevel | null;   
+  };
+
+export const importCvData = async (candidateId) => {
+    const cvData = await processFileUtil.parseText("/Users/hiepdv/Workspace/own/ats/public/cv/Đoàn Văn Hiệp CV.pdf");
+    const structuredData: LlmSkill[] = await instance.generateJSON(structuredSkillPrompt(cvData))
+    for (const skill of structuredData) {
+        await prisma.$transaction(async (tx) => {
+            const skillId = await skillService.createSkill(tx, skill.name);
+            await skillService.createOrUpdateSkillCandidate(tx, candidateId, skillId, skill.level, skill.year, skill.confidence);
+        })
+    }
+
+    return structuredData;
+}
 
 export const importEsco = async () => {
     let buffer: any[] = [];

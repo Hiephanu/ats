@@ -192,11 +192,14 @@ model Candidate {
 }
 
 model CandidateSkill {
-  candidateId  String  @map("candidate_id")
-  skillId      String  @map("skill_id")
+  id           String   @id @default(uuid())
 
-  level        String?
+  candidateId  String   @map("candidate_id")
+  skillId      String   @map("skill_id")
+
+  level        SkillLevel?
   years        Float?
+  confidence   Float?
 
   source       String?
 
@@ -205,9 +208,17 @@ model CandidateSkill {
   candidate    Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   skill        Skill     @relation(fields: [skillId], references: [id], onDelete: Cascade)
 
-  @@id([candidateId, skillId])
+  @@unique([candidateId, skillId])
   @@index([skillId])
   @@map("candidate_skill")
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+  MASTER
 }
 
 model SkillMergeLog {
@@ -229,3 +240,24 @@ model SkillMergeLog {
   @@map("skill_merge_log")
 }
 
+
+model ImportLog {
+  id          String   @id @default(uuid())
+  
+  importedBy  String   @map("imported_by")      // ID của người import
+  fileId      String   @map("file_id")          // ID của file được import
+  type        String   @map("type")             // Kiểu import: SKILL | CANDIDATE | CV ...
+
+  status      String   @default("PENDING")      // PENDING | RUNNING | COMPLETED | FAILED
+  startedAt   DateTime @default(now()) @map("started_at")
+  finishedAt  DateTime? @map("finished_at")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([fileId])
+  @@index([importedBy])
+  @@index([type])
+
+  @@map("import_log")  // đặt tên bảng camelCase
+}

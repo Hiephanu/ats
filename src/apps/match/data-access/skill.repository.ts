@@ -1,6 +1,6 @@
 import { prisma } from "../../../libs/prisma";
 import { ExactMatchSkillDto } from "../domain/skill/dto/batch-skill.dto";
-import { SkillStatus } from "@/generated/prisma/client"
+import { Skill, SkillStatus } from "@/generated/prisma/client"
 
 export const getSkillById = async (skillId: string) => {
   return prisma.skill.findUnique({
@@ -30,11 +30,11 @@ export const updateSkillStatus = async (
   })
 }
 
-export const getMatchSkillByNormalizedCanonical = async (key: string) => {
-  return await prisma.skill.findMany({
+export const getMatchSkillByNormalizedCanonical = async (key: string) : Promise<Skill> => {
+  return await prisma.skill.findFirst({
     where: {
       normalizedCanonical: {
-        contains: key
+        equals: key
       }
     }
   })
