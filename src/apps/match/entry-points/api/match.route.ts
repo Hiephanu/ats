@@ -1,9 +1,8 @@
-// import { Router } from "express";
-// import * as matchController from "../controllers/match.controller";
+import { Router } from "express";
+import { matchQueryController } from "./match.controller";
 
-// const router = Router();
+const router = Router();
 
-// router.post("/", matchController.createMatch);
-// router.get("/:id", matchController.getMatch);
+router.post("/query", matchQueryController.matchCandidatesByQuery);
 
-// export default router;
+export default router;

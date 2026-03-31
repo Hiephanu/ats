@@ -1,18 +1,13 @@
 import fs from "fs/promises";
-// @ts-ignore: pdf-parse might not have types for this specific usage
-import { PDFParse } from 'pdf-parse';
+import pdf from "pdf-parse"; // import function trực tiếp
 
 export const parseText = async (filePath: string): Promise<string> => {
+  // đọc file PDF
   const buffer = await fs.readFile(filePath);
-  const uint8Array = new Uint8Array(buffer);
 
-  const parser = new (PDFParse as any)(uint8Array);
-  const result = await parser.getText();
+  // parse PDF trực tiếp
+  const data = await pdf(buffer);
 
-  // flatten toàn bộ pages → text
-  const fullText = result.pages
-    .map((p: { text: string }) => p.text)
-    .join("\n");
-
-  return fullText.trim();
+  // data.text đã là toàn bộ text
+  return data.text.trim();
 };

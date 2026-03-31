@@ -1,43 +1,67 @@
-import { prisma } from "@/libs/prisma";
+import * as normalizeService from "../../normalize/normalize.service";
+import * as skillRepository from "@/apps/match/data-access/skill.repository";
+import * as skillAliasRepository from "@/apps/match/data-access/skill-alias.repository";
+import { Prisma, SkillLevel } from "@/generated/prisma/client";
+import { z } from "zod";
 
-export const expandSkill = async (skillId: string) => {
-  const relations =  await getRelatedSkills(skillId);
 
-  return relations.map(r => r.toSkill);
+export type ExtractedQuery = {
+  skill: string;
+  years: number | null;
+  level: SkillLevel | null;
 }
 
-export const getRelatedSkills = (skillId: string) => {
-  return prisma.skillRelation.findMany({
+export const createOrUpdateSkillCandidate = async (
+  tx: Prisma.TransactionClient,
+  candidateId: string,
+  skillId: string,
+  level: SkillLevel,
+  year: number,
+  confidence: number
+) => {
+  return tx.candidateSkill.upsert({
     where: {
-      fromSkillId: skillId,
-      type: {
-        in: ["RELATED", "ESSENTIAL"]
-      }
+      candidateId_skillId: {
+        candidateId,
+        skillId,
+      },
     },
-    include: {
-      toSkill: true
+    update: {
+      level,
+      years: year,
+      confidence,
+    },
+    create: {
+      candidateId,
+      skillId,
+      level,
+      years: year,
+      confidence,
+      source: "LLM Parser",
+    },
+  });
+};
+
+export const createSkill = async (tx: Prisma.TransactionClient, canonicalName: string) => {
+  const normalizedCanonicalName = normalizeService.normalizeSkill(canonicalName);
+
+  const exsitingSkill = await skillRepository.getMatchSkillByNormalizedCanonical(normalizedCanonicalName);
+  if (exsitingSkill) {
+    return exsitingSkill.id;
+  }
+
+  const skillAlias = await skillAliasRepository.getSkillAliasByNormalize(normalizedCanonicalName);
+  if (skillAlias) {
+    return skillAlias.skillId;
+  }
+
+  const newSkill = await tx.skill.create({
+    data: {
+      canonicalName,
+      normalizedCanonical: normalizedCanonicalName,
+      status: "PENDING"
     }
-  })
-}
+  });
 
-export async function getFullSkillPath(skillId: string) {
-  const results = await prisma.$queryRaw`
-    WITH RECURSIVE SkillPath AS (
-        -- Gốc: Kỹ năng bắt đầu
-        SELECT id, canonical_name, 1 as level
-        FROM skill
-        WHERE id = ${skillId}
-
-        UNION ALL
-
-        -- Đệ quy: Tìm các to_skill_id có quan hệ 'PARENT'
-        SELECT s.id, s.canonical_name, sp.level + 1
-        FROM skill s
-        INNER JOIN skill_relation sr ON s.id = sr.to_skill_id
-        INNER JOIN SkillPath sp ON sr.from_skill_id = sp.id
-        WHERE sr.type = 'PARENT' AND sp.level < 10 -- Giới hạn 10 cấp để tránh vòng lặp vô tận
-    )
-    SELECT DISTINCT * FROM SkillPath ORDER BY level ASC;
-  `;
-  return results;
+  return newSkill.id;
 }
