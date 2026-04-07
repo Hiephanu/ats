@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_match_data:/var/lib/postgresql/data
+    networks:
+      - ats-network
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - ats-network
+
+  ocr:
+    image: ats-ocr:latest   # 🔥 dùng image đã build & push
+    restart: always
+    environment:
+      NODE_ENV: production
+      OCR_PORT: 9000
+      TESSERACT_LANG: ${TESSERACT_LANG:-eng}
+      TESSDATA_PREFIX: /usr/share/tessdata
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - ats-network
+  match:
+    image: ats-match:latest   # 🔥 service mới
+    restart: always
+    environment:
+      NODE_ENV: production
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - ats-network
+
+networks:
+  ats-network:
+
+volumes:
+  postgres_match_data:
+  redis_data:

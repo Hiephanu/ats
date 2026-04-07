@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: match-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-match}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-matchpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-match_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_match_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-match} -d ${POSTGRES_DB:-match_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: shared-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ocr:
+    build:
+      context: ../apps/ocr   # 🔥 quan trọng: trỏ đúng service
+      dockerfile: Dockerfile
+    container_name: ats-ocr
+    restart: unless-stopped
+    ports:
+      - "${OCR_PORT:-9000}:9000"
+    environment:
+      OCR_PORT: 9000
+      TESSERACT_LANG: ${TESSERACT_LANG:-eng}
+      TESSDATA_PREFIX: /usr/share/tessdata
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+    depends_on:
+      - redis
+      - postgres
+    volumes:
+      - /tmp:/tmp
+
+volumes:
+  postgres_match_data:
+  redis_data:

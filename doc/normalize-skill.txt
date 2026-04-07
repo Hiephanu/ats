@@ -1,9 +1,0 @@
-textNormalize
-   ↓
-Exact Alias Match (O(1))
-   ↓
-Pattern-based Match
-   ↓
-Fuzzy Match (top-K)
-   ↓
-LLM fallback (ghi nhận alias mới)

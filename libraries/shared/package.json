@@ -1,0 +1,60 @@
+{
+  "name": "@ats/shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./prisma": {
+      "types": "./dist/prisma.d.ts",
+      "default": "./dist/prisma.js"
+    },
+    "./queue": {
+      "types": "./dist/queue/index.d.ts",
+      "default": "./dist/queue/index.js"
+    },
+    "./storage": {
+      "types": "./dist/storage/index.d.ts",
+      "default": "./dist/storage/index.js"
+    },
+    "./utils": {
+      "types": "./dist/utils/index.d.ts",
+      "default": "./dist/utils/index.js"
+    },
+    "./ocr-client": {
+      "types": "./dist/ocr-client.d.ts",
+      "default": "./dist/ocr-client.js"
+    },
+    "./gemini.client": {
+      "types": "./dist/gemini.client.d.ts",
+      "default": "./dist/gemini.client.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.3.0",
+    "@google/generative-ai": "^0.24.1",
+    "csv-parse": "^5.6.0",
+    "dotenv": "^16.6.1",
+    "pdf-parse": "^1.1.1",
+    "redis": "^5.11.0",
+    "@aws-sdk/client-eventbridge": "^3.1022.0",
+    "@aws-sdk/client-s3": "^3.1022.0",
+    "@aws-sdk/client-sqs": "^3.1022.0",
+    "@aws-sdk/s3-request-presigner": "^3.1022.0"
+  },
+  "devDependencies": {
+    "@prisma/client": "^7.3.0",
+    "@types/node": "^22.19.10",
+    "@types/pdf-parse": "^1.1.4",
+    "typescript": "^5.7.3"
+  }
+}

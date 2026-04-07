@@ -1,4 +1,30 @@
-/node_modules
+# Dependencies
+node_modules/
+
+# Environment
 .env
-package-lock.json
-/src/generated/prisma
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+apps/*/dist/
+libraries/*/dist/
+
+# Generated Prisma
+libraries/shared/src/generated/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+apps/match/generated

@@ -1,8 +1,0 @@
-Upload CV
-→ Validate & Store Raw File
-→ Create Parsing Job
-→ Parse CV Content
-→ Extract Structured Data
-→ Normalize & Enrich Data
-→ Save Candidate Profile
-→ Ready for Search & Matching
