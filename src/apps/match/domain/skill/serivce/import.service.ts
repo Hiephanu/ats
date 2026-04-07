@@ -6,6 +6,11 @@ import { BATCH_SIZE_IMPORT_SKILL } from "@/libs/utils/instance-util";
 import * as processFileUtil from "@/libs/utils/procress-file";
 import { structuredSkillPrompt } from "@/libs/utils/prompt";
 import * as skillService from "@/apps/match/domain/skill/serivce/skill.service";
+import { uploadFile } from "@/libs/storage/s3";
+import { getOrCreateQueueUrl, sendMessage } from "@/libs/sqs";
+
+const CV_QUEUE_NAME = process.env.CV_SQS_QUEUE || "ats-cv-processing";
+const CV_BUCKET = process.env.CV_S3_BUCKET || "ats-cvs";
 
 export type LlmSkill = {
     name: string; 
@@ -14,17 +19,48 @@ export type LlmSkill = {
     level: SkillLevel | null;   
   };
 
-export const importCvData = async (candidateId) => {
-    const cvData = await processFileUtil.parseText("/Users/hiepdv/Workspace/own/ats/public/cv/Đoàn Văn Hiệp CV.pdf");
-    const structuredData: LlmSkill[] = await instance.generateJSON(structuredSkillPrompt(cvData))
-    for (const skill of structuredData) {
-        await prisma.$transaction(async (tx) => {
-            const skillId = await skillService.createSkill(tx, skill.name);
-            await skillService.createOrUpdateSkillCandidate(tx, candidateId, skillId, skill.level, skill.year, skill.confidence);
-        })
-    }
+export type CvProcessingMessage = {
+    candidateId: string;
+    s3Key: string;
+    originalFileName: string;
+};
 
-    return structuredData;
+export const uploadCvToCloud = async (
+    fileBuffer: Buffer,
+    candidateId: string,
+    originalFileName: string
+): Promise<string> => {
+    const s3Key = `cvs/${candidateId}/${Date.now()}-${originalFileName}`;
+    
+    await uploadFile({
+        bucket: CV_BUCKET,
+        key: s3Key,
+        body: fileBuffer,
+        contentType: "application/pdf",
+    });
+
+    return s3Key;
+};
+
+export const publishCvForProcessing = async (
+    candidateId: string,
+    s3Key: string,
+    originalFileName: string
+): Promise<void> => {
+    const message: CvProcessingMessage = {
+        candidateId,
+        s3Key,
+        originalFileName,
+    };
+    const queueUrl = await getOrCreateQueueUrl(CV_QUEUE_NAME);
+    await sendMessage(queueUrl, message);
+};
+
+export const importCvData = async (candidateId: string, fileBuffer: Buffer, originalFileName: string) => {
+    const s3Key = await uploadCvToCloud(fileBuffer, candidateId, originalFileName);
+    await publishCvForProcessing(candidateId, s3Key, originalFileName);
+
+    return { s3Key, status: "processing" };
 }
 
 export const importEsco = async () => {
