@@ -1,6 +1,6 @@
-import { prisma } from "@ats/shared/prisma";
 import { ExactMatchSkillAliasDto } from "../domain/skill/dto/batch-skill.dto";
 import { SkillAlias } from "../../generated/prisma/client";
+import { prisma } from "src/libs/prisma";
 
 export const getSkillAliasByNormalize = async (normalized: string): Promise<SkillAlias | null> => {
    return prisma.skillAlias.findFirst({

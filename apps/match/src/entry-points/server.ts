@@ -1,6 +1,6 @@
 import { createServerExpress } from "./app";
 import apiRouter from "./api/index";
-import { prisma } from "@ats/shared/prisma";
+import { prisma } from "../libs/prisma";
 
 const PORT = process.env.MATCH_PORT || 3001;
 const app = createServerExpress();

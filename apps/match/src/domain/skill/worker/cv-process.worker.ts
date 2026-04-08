@@ -1,11 +1,11 @@
 import { createQueue } from "@ats/shared/queue";
 import { createStorageService } from "@ats/shared/storage";
 import { createOcrClient, type OcrClient } from "@ats/shared/ocr-client";
-import instance from "@ats/shared/gemini.client";
+import instance from "src/libs/gemini.client";
 import { structuredSkillPrompt } from "@ats/shared/utils";
-import { prisma } from "@ats/shared/prisma";
 import * as skillService from "../serivce/skill.service";
 import { SkillLevel } from "../../../../generated/prisma/enums";
+import { prisma } from "src/libs/prisma";
 
 export type CvProcessingMessage = {
     candidateId: string;

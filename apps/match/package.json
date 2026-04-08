@@ -20,7 +20,8 @@
   },
   "dependencies": {
     "@ats/shared": "*",
-    "@prisma/client": "^7.3.0",
+    "@prisma/adapter-pg": "^7.6.0",
+    "@prisma/client": "^7.6.0",
     "@types/multer": "^2.1.0",
     "chrono-node": "^2.9.0",
     "cookie-parser": "^1.4.7",
@@ -30,6 +31,7 @@
     "morgan": "^1.10.0",
     "multer": "^2.1.1",
     "pdf-parse": "^1.1.1",
+    "pg": "^8.20.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {

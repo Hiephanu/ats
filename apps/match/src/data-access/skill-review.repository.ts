@@ -1,4 +1,4 @@
-import { prisma } from "@ats/shared/prisma"
+import { prisma } from "src/libs/prisma"
 import { Prisma, SkillReviewAction } from "../../generated/prisma/client"
 
 export const createReviewLog = async (

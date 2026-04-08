@@ -2,9 +2,9 @@ import { createClient, RedisClientType } from "redis";
 
 let redisClient: RedisClientType | null = null;
 
-export interface QueueMessage {
+export interface QueueMessage<T = any> {
     id: string;
-    payload: object;
+    payload: T;
     retryCount?: number;
     maxRetries?: number;
     createdAt?: number;
@@ -85,40 +85,30 @@ export const createQueue = (options: QueueOptions = {}) => {
         await subscriber.connect();
 
         const processWithRetry = async (message: QueueMessage): Promise<void> => {
-            try {
-                await handler(message);
-            } catch (error) {
-                const err = error as Error;
-                console.error(`Error processing message ${message.id}:`, err.message);
+            const maxRetries = message.maxRetries || opts.maxRetries!;
+            let retryCount = message.retryCount || 0;
 
-                const retryCount = (message.retryCount || 0) + 1;
+            while(retryCount < maxRetries) {
+                try {
+                    await handler(message);
+                    return;
+                } catch (error) {
+                    const err = error as Error;
+                    console.error(`Error processing message ${message.id}:`, err.message);
 
-                if (retryCount < (message.maxRetries || opts.maxRetries!)) {
+                    retryCount++;
                     const delay = opts.retryDelay! * Math.pow(opts.retryBackoff!, retryCount - 1);
                     console.log(`Retrying message ${message.id} in ${delay}ms (attempt ${retryCount})`);
-
-                    setTimeout(async () => {
-                        const retryMessage: QueueMessage = {
-                            ...message,
-                            retryCount,
-                        };
-                        await handler(retryMessage);
-                    }, delay);
-                } else {
-                    console.error(`Message ${message.id} failed after max retries`);
-
-                    const dlqChannel = `${channel}:dlq`;
-                    await client.publish(dlqChannel, JSON.stringify({
-                        ...message,
-                        failedAt: Date.now(),
-                        lastError: err.message,
-                    }));
-
-                    if (onFailure) {
-                        onFailure(message, err);
-                    }
+                    await new Promise(res => setTimeout(res, delay));
                 }
+
+                const dlqChannel = `${channel}:dlq`;
+                await client.publish(dlqChannel, JSON.stringify({
+                    ...message,
+                    failedAt: Date.now()
+                }));
             }
+        
         };
 
         await subscriber.subscribe(channel, async (msg) => {

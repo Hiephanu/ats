@@ -1,6 +1,7 @@
 import { SkillLevel } from "../../../../generated/prisma/enums";
 import { createStorageService } from "@ats/shared/storage";
-import { publish } from "@ats/shared/queue";
+import { publish, QueueMessage } from "@ats/shared/queue";
+import { randomUUID } from "crypto";
 
 const CV_CHANNEL = process.env.CV_QUEUE_CHANNEL || "cv-processing";
 
@@ -31,16 +32,24 @@ export const uploadCvToCloud = async (
 };
 
 export const publishCvForProcessing = async (
-    candidateId: string,
-    s3Key: string,
-    originalFileName: string
+  candidateId: string,
+  s3Key: string,
+  originalFileName: string
 ): Promise<void> => {
-    const message: CvProcessingMessage = {
-        candidateId,
-        s3Key,
-        originalFileName,
-    };
-    await publish(CV_CHANNEL, message);
+
+  const message: QueueMessage<CvProcessingMessage> = {
+    id: randomUUID(),
+    payload: {
+      candidateId,
+      s3Key,
+      originalFileName,
+    },
+    retryCount: 0,
+    maxRetries: 3,
+    createdAt: Date.now(),
+  };
+
+  await publish(CV_CHANNEL, message);
 };
 
 export const importCvData = async (candidateId: string, fileBuffer: Buffer, originalFileName: string) => {

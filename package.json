@@ -20,13 +20,10 @@
     "db:push": "npm run db:push -w @ats/match",
     "db:studio": "npm run db:studio -w @ats/match",
     "db:reset": "npm run db:migrate:dev -- --force && npm run db:seed -w @ats/match",
-    "infra:up": "docker compose up -d",
-    "infra:down": "docker compose down",
+    "infra:dev:up": "docker compose -f infra/docker-compose.dev.yaml up -d",
+    "infra:dev:down": "docker compose -f infra/docker-compose.dev.yaml down",
     "infra:logs": "docker compose logs -f",
     "infra:logs:ocr": "docker compose logs -f ocr",
-    "ocr:build": "docker compose build ocr",
-    "ocr:start": "docker compose up -d ocr",
-    "ocr:stop": "docker compose stop ocr",
     "clean": "rm -rf node_modules apps/*/node_modules libraries/*/node_modules"
   },
   "devDependencies": {

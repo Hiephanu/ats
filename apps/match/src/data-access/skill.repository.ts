@@ -1,6 +1,6 @@
-import { prisma } from "@ats/shared/prisma";
 import { ExactMatchSkillDto } from "../domain/skill/dto/batch-skill.dto";
 import { Skill, SkillStatus } from "../../generated/prisma/client"
+import { prisma } from "src/libs/prisma";
 
 export const getSkillById = async (skillId: string) => {
   return prisma.skill.findUnique({

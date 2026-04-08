@@ -1,5 +1,4 @@
-import { prisma } from "@ats/shared/prisma";
-import { SkillLevel } from "../domain/skill/core/skill-matcher";
+import { prisma } from "src/libs/prisma";
 
 export interface CandidateSkillData {
   candidateId: string;

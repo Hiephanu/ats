@@ -1,4 +1,4 @@
-import instance from "@ats/shared/gemini.client";
+import instance from "src/libs/gemini.client";
 import { extractQuerySkillsPrompt } from "@ats/shared/utils";
 import { normalizeSkill } from "../../normalize/normalize.service";
 import {

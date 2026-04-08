@@ -17,7 +17,7 @@
     "moduleDetection": "force",
     "baseUrl": "."
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "../../apps/match/src/libs/gemini.client.ts"],
   "exclude": ["node_modules", "dist"],
   "references": [
     { "path": "../../apps/match" }
