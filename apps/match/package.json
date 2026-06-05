@@ -6,9 +6,6 @@
   "main": "./dist/entry-points/server.js",
   "scripts": {
     "dev": "tsx src/entry-points/server.ts",
-    "dev:worker:upload": "tsx src/domain/skill/worker/cv-upload.worker.ts",
-    "dev:worker:process": "tsx src/domain/skill/worker/cv-process.worker.ts",
-    "dev:workers": "npm run dev:worker:upload & npm run dev:worker:process",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
@@ -25,6 +22,7 @@
     "@types/multer": "^2.1.0",
     "chrono-node": "^2.9.0",
     "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
     "csv-parse": "^5.6.0",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
@@ -32,11 +30,14 @@
     "multer": "^2.1.1",
     "pdf-parse": "^1.1.1",
     "pg": "^8.20.0",
+    "uuid": "^11.1.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.8",
+    "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
+    "@types/uuid": "^10.0.0",
     "@types/morgan": "^1.9.9",
     "@types/node": "^22.19.10",
     "@types/pdf-parse": "^1.1.4",

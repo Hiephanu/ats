@@ -6,14 +6,16 @@ class GeminiClient {
     private model: GenerativeModel;
 
     constructor() {
+        console.log("cwd =", process.cwd());
+        console.log("GEMINI =", process.env.GEMINI_API_KEY);
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) {
             throw new Error("❌ Thiếu GEMINI_API_KEY trong file .env");
         }
 
         this.genAI = new GoogleGenerativeAI(apiKey);
-        this.model = this.genAI.getGenerativeModel({ 
-            model: "gemini-1.5-flash" 
+        this.model = this.genAI.getGenerativeModel({
+            model: "gemini-1.5-flash"
         });
     }
 
@@ -28,7 +30,7 @@ class GeminiClient {
 
             const response = result.response;
             const text = response.text();
-            
+
             return JSON.parse(text) as T;
         } catch (error: any) {
             console.error("Error to fetch data", error.message);

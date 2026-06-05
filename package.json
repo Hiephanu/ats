@@ -9,9 +9,10 @@
   ],
   "scripts": {
     "dev:match": "npm run dev -w @ats/match",
-    "dev:match:upload-worker": "npm run dev:worker:upload -w @ats/match",
-    "dev:match:process-worker": "npm run dev:worker:process -w @ats/match",
-    "dev:match:workers": "npm run dev:workers -w @ats/match",
+    "dev:worker": "npm run dev -w @ats/worker",
+    "dev:ocr": "npm run dev -w @ats/ocr-service",
+    "dev:web": "npm run dev -w @ats/web",
+    "dev:worker:send-fake-message": "npm run send-fake-message -w @ats/worker",
     "build": "npm run build -ws --if-present",
     "build:shared": "npm run build -w @ats/shared",
     "typecheck": "npm run typecheck -ws --if-present",

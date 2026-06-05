@@ -1,17 +1,76 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
+```prisma
 generator client {
-  provider = "prisma-client"
-  output   = "../node_modules/.prisma/client"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
+
+//////////////////////////////////////////////////////
+// ENUMS
+//////////////////////////////////////////////////////
+
+enum SkillStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  REJECTED
+}
+
+enum SkillSource {
+  MANUAL
+  CV
+  JOB
+  AI
+  ESCO
+  IMPORT
+}
+
+enum SkillRelationType {
+  PARENT
+  RELATED
+  ESSENTIAL
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum CandidateSource {
+  MANUAL
+  IMPORT
+  CV_UPLOAD
+  LINKEDIN
+}
+
+enum CandidateStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum ImportType {
+  SKILL
+  CANDIDATE
+  CV
+}
+
+enum ImportStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+//////////////////////////////////////////////////////
+// BASE MODELS
+//////////////////////////////////////////////////////
 
 model Skill {
   id                    String   @id @default(uuid())
@@ -22,38 +81,64 @@ model Skill {
   description           String?
 
   skillType             String?  @map("skill_type")
-  reuseLevel            String?  @map("reuse_level")
 
   status                SkillStatus @default(PENDING)
 
   usageCount            Int @default(0) @map("usage_count")
 
-  sourceId              String?  @map("source_id")
-  isSystem              Boolean  @default(false) @map("is_system")
+  source                SkillSource @default(MANUAL)
 
-  mergeIntoId           String?  @map("merge_into_id")
-  mergeInto             Skill?   @relation("SkillMerge", fields: [mergeIntoId], references: [id])
-  mergedFrom            Skill[]  @relation("SkillMerge")
+  isSystem              Boolean @default(false) @map("is_system")
 
-  createdById           String?  @map("created_by_id")
+  embedding             Unsupported("vector")?
+
+  mergeIntoId           String? @map("merge_into_id")
+
+  createdById           String? @map("created_by_id")
 
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
+  deletedAt             DateTime? @map("deleted_at")
+
+  //////////////////////////////////////////////////////
+  // RELATIONS
+  //////////////////////////////////////////////////////
+
+  mergeInto             Skill? @relation(
+    "SkillMerge",
+    fields: [mergeIntoId],
+    references: [id]
+  )
+
+  mergedFrom            Skill[] @relation("SkillMerge")
+
+  aliases               SkillAlias[]
 
   outgoingRelations     SkillRelation[] @relation("FromSkill")
   incomingRelations     SkillRelation[] @relation("ToSkill")
-  aliases               SkillAlias[]
+
   occupationSkills      OccupationSkill[]
   candidateSkills       CandidateSkill[]
+
   reviewLogs            SkillReviewLog[]
+
   mergedLogsFrom        SkillMergeLog[] @relation("SkillMergeFrom")
   mergedLogsTo          SkillMergeLog[] @relation("SkillMergeTo")
+
+  //////////////////////////////////////////////////////
+  // INDEXES
+  //////////////////////////////////////////////////////
 
   @@index([normalizedCanonical])
   @@index([status])
   @@index([usageCount])
+
   @@map("skill")
 }
+
+//////////////////////////////////////////////////////
+// SKILL ALIAS
+//////////////////////////////////////////////////////
 
 model SkillAlias {
   id            String   @id @default(uuid())
@@ -63,97 +148,82 @@ model SkillAlias {
   raw           String
   normalized    String
 
-  source        String?
+  source        SkillSource?
   confidence    Float?
 
-  createdById   String?  @map("created_by_id")
+  createdById   String? @map("created_by_id")
 
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  skill         Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  skill         Skill @relation(
+    fields: [skillId],
+    references: [id],
+    onDelete: Cascade
+  )
 
   @@index([normalized])
   @@index([skillId])
+
   @@unique([skillId, normalized])
 
   @@map("skill_alias")
 }
 
+//////////////////////////////////////////////////////
+// SKILL RELATION GRAPH
+//////////////////////////////////////////////////////
+
 model SkillRelation {
-  id            String   @id @default(uuid())
+  id            String @id @default(uuid())
 
-  fromSkillId   String   @map("from_skill_id")
-  toSkillId     String   @map("to_skill_id")
+  fromSkillId   String @map("from_skill_id")
+  toSkillId     String @map("to_skill_id")
 
-  type          RelationType
-  source        String?  // ESCO, CV, JOB...
+  type          SkillRelationType
+
+  weight        Float?
+
+  source        SkillSource?
 
   createdAt     DateTime @default(now()) @map("created_at")
 
-  fromSkill     Skill @relation("FromSkill", fields: [fromSkillId], references: [id], onDelete: Cascade)
-  toSkill       Skill @relation("ToSkill", fields: [toSkillId], references: [id], onDelete: Cascade)
+  fromSkill     Skill @relation(
+    "FromSkill",
+    fields: [fromSkillId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  toSkill       Skill @relation(
+    "ToSkill",
+    fields: [toSkillId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  @@unique([fromSkillId, toSkillId, type])
 
   @@index([fromSkillId])
   @@index([toSkillId])
 
-  @@unique([fromSkillId, toSkillId, type])
-
   @@map("skill_relation")
 }
 
-enum RelationType {
-  PARENT        // broader
-  CHILD         // narrower
-  RELATED       // optional
-  ESSENTIAL     // essential
-}
-
-model SkillReviewLog {
-
-  id           String   @id @default(uuid())
-
-  skillId      String
-  skill        Skill    @relation(fields: [skillId], references: [id])
-
-  action       SkillReviewAction @default(UPDATE)
-
-  comment      String?
-
-  oldValue     Json?
-  newValue     Json?
-
-  reviewedById String?
-
-  createdAt    DateTime @default(now())
-
-  @@index([skillId])
-}
-
-enum SkillStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  ACTIVE
-  INACTIVE
-}
-
-enum SkillReviewAction {
-  UPDATE
-  APPROVE
-  REJECT
-  ACTIVATE
-  DEACTIVATE
-}
+//////////////////////////////////////////////////////
+// OCCUPATION
+//////////////////////////////////////////////////////
 
 model Occupation {
-  id          String   @id @default(uuid())
+  id            String @id @default(uuid())
 
-  name        String
-  description String?
+  name          String
+  normalizedName String @unique @map("normalized_name")
 
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  description   String?
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   occupationSkills OccupationSkill[]
 
@@ -161,78 +231,287 @@ model Occupation {
 }
 
 model OccupationSkill {
-  occupationId String  @map("occupation_id")
-  skillId      String  @map("skill_id")
+  occupationId  String @map("occupation_id")
+  skillId       String @map("skill_id")
 
-  weight       Float?
-  isCore       Boolean @default(false) @map("is_core")
+  weight        Float?
+  isCore        Boolean @default(false) @map("is_core")
 
-  createdAt    DateTime @default(now()) @map("created_at")
+  createdAt     DateTime @default(now()) @map("created_at")
 
-  occupation   Occupation @relation(fields: [occupationId], references: [id], onDelete: Cascade)
-  skill        Skill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  occupation    Occupation @relation(
+    fields: [occupationId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  skill         Skill @relation(
+    fields: [skillId],
+    references: [id],
+    onDelete: Cascade
+  )
 
   @@id([occupationId, skillId])
+
   @@index([skillId])
+
   @@map("occupation_skill")
 }
 
+//////////////////////////////////////////////////////
+// CANDIDATE
+//////////////////////////////////////////////////////
+
 model Candidate {
-  id        String   @id @default(uuid())
+  id                  String @id @default(uuid())
 
-  fullName  String?  @map("full_name")
-  email     String?  @unique
+  fullName            String? @map("full_name")
+  normalizedFullName  String? @map("normalized_full_name")
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  email               String? @unique
+  phone               String?
 
-  candidateSkills CandidateSkill[]
+  headline            String?
+  summary             String?
+
+  githubUrl           String? @map("github_url")
+  linkedinUrl         String? @map("linkedin_url")
+  portfolioUrl        String? @map("portfolio_url")
+
+  location            String?
+
+  yearsExperience     Float? @map("years_experience")
+
+  cvFileUrl           String? @map("cv_file_url")
+
+  rawCvText           String? @map("raw_cv_text")
+
+  parsedData          Json? @map("parsed_data")
+
+  cvStatus            CandidateStatus @default(PENDING) @map("cv_status")
+
+  embedding           Unsupported("vector")?
+
+  source              CandidateSource @default(MANUAL)
+
+  parserVersion       String? @map("parser_version")
+
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+
+  //////////////////////////////////////////////////////
+  // RELATIONS
+  //////////////////////////////////////////////////////
+
+  candidateSkills     CandidateSkill[]
+
+  experiences         CandidateExperience[]
+  educations          CandidateEducation[]
+  projects            CandidateProject[]
+
+  @@index([normalizedFullName])
 
   @@map("candidate")
 }
 
+//////////////////////////////////////////////////////
+// CANDIDATE SKILL
+//////////////////////////////////////////////////////
+
 model CandidateSkill {
-  id           String   @id @default(uuid())
+  id              String @id @default(uuid())
 
-  candidateId  String   @map("candidate_id")
-  skillId      String   @map("skill_id")
+  candidateId     String @map("candidate_id")
+  skillId         String @map("skill_id")
 
-  level        SkillLevel?
-  years        Float?
-  confidence   Float?
+  level           SkillLevel?
 
-  source       String?
+  years           Float?
 
-  createdAt    DateTime @default(now()) @map("created_at")
+  confidence      Float?
 
-  candidate    Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  skill        Skill     @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  source          SkillSource?
+
+  evidenceText    String? @map("evidence_text")
+
+  metadata        Json?
+
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  candidate       Candidate @relation(
+    fields: [candidateId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  skill           Skill @relation(
+    fields: [skillId],
+    references: [id],
+    onDelete: Cascade
+  )
 
   @@unique([candidateId, skillId])
+
   @@index([skillId])
+
   @@map("candidate_skill")
 }
 
-enum SkillLevel {
-  BEGINNER
-  INTERMEDIATE
-  ADVANCED
-  EXPERT
-  MASTER
+//////////////////////////////////////////////////////
+// EXPERIENCE
+//////////////////////////////////////////////////////
+
+model CandidateExperience {
+  id              String @id @default(uuid())
+
+  candidateId     String @map("candidate_id")
+
+  companyName     String @map("company_name")
+
+  title           String
+
+  description     String?
+
+  startDate       DateTime? @map("start_date")
+  endDate         DateTime? @map("end_date")
+
+  isCurrent       Boolean @default(false) @map("is_current")
+
+  metadata        Json?
+
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  candidate       Candidate @relation(
+    fields: [candidateId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  @@index([candidateId])
+
+  @@map("candidate_experience")
 }
 
+//////////////////////////////////////////////////////
+// EDUCATION
+//////////////////////////////////////////////////////
+
+model CandidateEducation {
+  id              String @id @default(uuid())
+
+  candidateId     String @map("candidate_id")
+
+  school          String
+  degree          String?
+  major           String?
+
+  gpa             Float?
+
+  startDate       DateTime? @map("start_date")
+  endDate         DateTime? @map("end_date")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  candidate       Candidate @relation(
+    fields: [candidateId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  @@index([candidateId])
+
+  @@map("candidate_education")
+}
+
+//////////////////////////////////////////////////////
+// PROJECT
+//////////////////////////////////////////////////////
+
+model CandidateProject {
+  id              String @id @default(uuid())
+
+  candidateId     String @map("candidate_id")
+
+  name            String
+
+  description     String?
+
+  githubUrl       String? @map("github_url")
+  demoUrl         String? @map("demo_url")
+
+  techStack       Json? @map("tech_stack")
+
+  metadata        Json?
+
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  candidate       Candidate @relation(
+    fields: [candidateId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  @@index([candidateId])
+
+  @@map("candidate_project")
+}
+
+//////////////////////////////////////////////////////
+// REVIEW LOG
+//////////////////////////////////////////////////////
+
+model SkillReviewLog {
+  id              String @id @default(uuid())
+
+  skillId         String
+
+  action          String
+
+  comment         String?
+
+  oldValue        Json?
+  newValue        Json?
+
+  reviewedById    String?
+
+  createdAt       DateTime @default(now())
+
+  skill           Skill @relation(
+    fields: [skillId],
+    references: [id]
+  )
+
+  @@index([skillId])
+
+  @@map("skill_review_log")
+}
+
+//////////////////////////////////////////////////////
+// MERGE LOG
+//////////////////////////////////////////////////////
+
 model SkillMergeLog {
-  id            String   @id @default(uuid())
+  id              String @id @default(uuid())
 
-  fromSkillId   String   @map("from_skill_id")
-  toSkillId     String   @map("to_skill_id")
+  fromSkillId     String @map("from_skill_id")
+  toSkillId       String @map("to_skill_id")
 
-  mergedById    String?  @map("merged_by_id")
+  mergedById      String? @map("merged_by_id")
 
-  createdAt     DateTime @default(now()) @map("created_at")
+  createdAt       DateTime @default(now()) @map("created_at")
 
-  fromSkill     Skill @relation("SkillMergeFrom", fields: [fromSkillId], references: [id])
-  toSkill       Skill @relation("SkillMergeTo", fields: [toSkillId], references: [id])
+  fromSkill       Skill @relation(
+    "SkillMergeFrom",
+    fields: [fromSkillId],
+    references: [id]
+  )
+
+  toSkill         Skill @relation(
+    "SkillMergeTo",
+    fields: [toSkillId],
+    references: [id]
+  )
 
   @@index([fromSkillId])
   @@index([toSkillId])
@@ -240,24 +519,38 @@ model SkillMergeLog {
   @@map("skill_merge_log")
 }
 
+//////////////////////////////////////////////////////
+// IMPORT LOG
+//////////////////////////////////////////////////////
 
 model ImportLog {
-  id          String   @id @default(uuid())
-  
-  importedBy  String   @map("imported_by")      // ID của người import
-  fileId      String   @map("file_id")          // ID của file được import
-  type        String   @map("type")             // Kiểu import: SKILL | CANDIDATE | CV ...
+  id              String @id @default(uuid())
 
-  status      String   @default("PENDING")      // PENDING | RUNNING | COMPLETED | FAILED
-  startedAt   DateTime @default(now()) @map("started_at")
-  finishedAt  DateTime? @map("finished_at")
+  importedBy      String @map("imported_by")
 
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  fileId          String @map("file_id")
+
+  type            ImportType
+
+  status          ImportStatus @default(PENDING)
+
+  startedAt       DateTime @default(now()) @map("started_at")
+  finishedAt      DateTime? @map("finished_at")
+
+  processedCount  Int? @map("processed_count")
+  failedCount     Int? @map("failed_count")
+
+  errorMessage    String? @map("error_message")
+
+  metadata        Json?
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   @@index([fileId])
   @@index([importedBy])
   @@index([type])
 
-  @@map("import_log")  // đặt tên bảng camelCase
+  @@map("import_log")
 }
+```

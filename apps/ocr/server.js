@@ -39,6 +39,7 @@ async function extractTextFromImages(imagePaths) {
   let fullText = "";
   for (const imagePath of imagePaths) {
     const { data: { text } } = await worker.recognize(imagePath);
+    console.log(data);
     fullText += text + "\n";
     await fs.unlink(imagePath);
   }
@@ -64,8 +65,8 @@ app.post("/ocr/file", upload.single("image"), async (req, res) => {
     const tempPath = `/tmp/ocr-${Date.now()}-${req.file.originalname}`;
     await fs.writeFile(tempPath, req.file.buffer);
 
-    const isPdf = req.file.mimetype === "application/pdf" || 
-                  req.file.originalname.toLowerCase().endsWith(".pdf");
+    const isPdf = req.file.mimetype === "application/pdf" ||
+      req.file.originalname.toLowerCase().endsWith(".pdf");
 
     let text, confidence;
 
@@ -73,7 +74,7 @@ app.post("/ocr/file", upload.single("image"), async (req, res) => {
       console.log(`Processing PDF: ${req.file.originalname}`);
       const outputDir = `/tmp/ocr-pages-${Date.now()}`;
       const imagePaths = await pdfToImages(tempPath, outputDir);
-      
+
       if (imagePaths.length === 0) {
         throw new Error("Failed to convert PDF to images");
       }
@@ -177,8 +178,8 @@ app.post("/ocr/cli", upload.single("image"), async (req, res) => {
     const tempPath = `/tmp/ocr-${Date.now()}-${req.file.originalname}`;
     await fs.writeFile(tempPath, req.file.buffer);
 
-    const isPdf = req.file.mimetype === "application/pdf" || 
-                  req.file.originalname.toLowerCase().endsWith(".pdf");
+    const isPdf = req.file.mimetype === "application/pdf" ||
+      req.file.originalname.toLowerCase().endsWith(".pdf");
 
     let text;
 

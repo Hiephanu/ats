@@ -14,28 +14,48 @@ services:
     volumes:
       - postgres_match_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-match} -d ${POSTGRES_DB:-match_db}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-match} -d ${POSTGRES_DB:-match_db}" ]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    container_name: shared-redis
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: ats-zookeeper
     restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "2181:2181"
     volumes:
-      - redis_data:/data
+      - zookeeper_data:/var/lib/zookeeper/data
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: ats-kafka
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
+      test: [ "CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092" ]
+      interval: 10s
+      timeout: 10s
       retries: 5
 
   ocr:
     build:
-      context: ../apps/ocr   # 🔥 quan trọng: trỏ đúng service
+      context: ../apps/ocr
       dockerfile: Dockerfile
     container_name: ats-ocr
     restart: unless-stopped
@@ -45,16 +65,15 @@ services:
       OCR_PORT: 9000
       TESSERACT_LANG: ${TESSERACT_LANG:-eng}
       TESSDATA_PREFIX: /usr/share/tessdata
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
     depends_on:
-      - redis
       - postgres
     volumes:
       - /tmp:/tmp
 
 volumes:
   postgres_match_data:
-  redis_data:
+  zookeeper_data:
+  kafka_data:
+

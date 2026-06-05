@@ -1,13 +1,15 @@
 FROM node:20-alpine
 
-RUN apk add --no-cache tesseract-ocr tesseract-ocr-data-eng poppler-utils
-
-ENV TESSDATA_PREFIX=/usr/share/tessdata
+RUN apk add --no-cache \
+    tesseract-ocr \
+    tesseract-ocr-data-eng \
+    poppler-utils
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --prefer-offline
+
+RUN npm install
 
 COPY . .
 
